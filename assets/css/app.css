@@ -106,3 +106,78 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* ── Piano keyboard ─────────────────────────────────────────────────────── */
+
+.piano-key {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  border-radius: 0 0 4px 4px;
+  cursor: default;
+  user-select: none;
+  transition: background 60ms;
+}
+
+.piano-key.white {
+  width: 38px;
+  height: 150px;
+  background: #e8e8e8;
+  border: 1px solid #555;
+  z-index: 1;
+}
+
+.piano-key.white.pressed {
+  background: oklch(70% 0.213 47.604);
+}
+
+/* C natural marker — small dot near the bottom */
+.piano-key.c-natural::after {
+  content: '';
+  position: absolute;
+  bottom: 22px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #999;
+}
+
+.piano-key.white.c-natural.pressed::after {
+  background: oklch(50% 0.213 47.604);
+}
+
+.piano-key.black {
+  width: 26px;
+  height: 90px;
+  background: #1c1c1c;
+  border: 1px solid #000;
+  z-index: 2;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.piano-key.black.pressed {
+  background: oklch(58% 0.233 277.117);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.piano-key-label {
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.piano-key.white .piano-key-label {
+  color: #888;
+}
+
+.piano-key.black .piano-key-label {
+  color: #666;
+  padding-bottom: 4px;
+}
+
+.piano-key.pressed .piano-key-label {
+  color: white;
+}

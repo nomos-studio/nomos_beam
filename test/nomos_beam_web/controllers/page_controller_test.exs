@@ -1,9 +1,11 @@
 defmodule NomosBeamWeb.PageControllerTest do
   use NomosBeamWeb.ConnCase
 
-  test "GET /", %{conn: conn} do
+  # "/" is now a LiveView (PianoLive); see piano_live_test.exs for content tests.
+  # The controller is kept for error pages; verify the redirect behaviour here.
+  test "GET / redirects to LiveView session", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "nomos-studio"
-    assert html_response(conn, 200) =~ "live performance environment for electronic music"
+    # LiveView root route responds 200 with the live session redirect script.
+    assert conn.status == 200
   end
 end

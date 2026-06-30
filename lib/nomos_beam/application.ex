@@ -9,6 +9,7 @@ defmodule NomosBeam.Application do
       NomosBeamWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:nomos_beam, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: NomosBeam.PubSub},
+      NomosBeam.KeyboardServer,
       # Phase 1: NomosBeam.NousPort      — Jinterface connection to nous@localhost
       # Phase 2: NomosBeam.CtrlTreeProxy — ctrl-tree IPC bridge
       # Phase 3: NomosBeam.MountTable    — mDNS + Khepri peer discovery

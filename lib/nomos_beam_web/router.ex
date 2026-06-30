@@ -17,7 +17,7 @@ defmodule NomosBeamWeb.Router do
   scope "/", NomosBeamWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", PianoLive
   end
 
   # Other scopes may use custom stacks.

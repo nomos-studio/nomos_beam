@@ -37,6 +37,26 @@
         });
       })();
     </script>
+    <%!-- Tauri keyboard bridge: captures keydown/keyup and routes them through the
+          Rust key_event command → WebSocket → KeyboardServer → PubSub → PianoLive.
+          No-op in a plain browser (window.__TAURI__ is absent). --%>
+    <script>
+      (function () {
+        function sendKey(key, pressed) {
+          var t = window.__TAURI__;
+          if (t && t.core && t.core.invoke) {
+            t.core.invoke("key_event", { key: key, pressed: pressed });
+          }
+        }
+        window.addEventListener("keydown", function (e) {
+          if (e.repeat || e.metaKey || e.ctrlKey) return;
+          sendKey(e.key.toLowerCase(), true);
+        });
+        window.addEventListener("keyup", function (e) {
+          sendKey(e.key.toLowerCase(), false);
+        });
+      })();
+    </script>
   </head>
   <body>
     {@inner_content}
