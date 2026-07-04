@@ -12,6 +12,7 @@ defmodule NomosBeam.Application do
       NomosBeam.KeyboardServer,
       NomosBeam.TxlogBuffer,
       NomosBeam.NousPort,
+      NomosBeam.AionSupervisor,
       NomosBeam.DisplayClock,
       # Phase 3: NomosBeam.CtrlTreeProxy — ctrl-tree IPC bridge
       # Phase 4: NomosBeam.MountTable    — mDNS + Khepri peer discovery
