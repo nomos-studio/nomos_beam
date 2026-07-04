@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+
+SPDX-License-Identifier: EPL-2.0
+-->
+
 This is a web application written using the Phoenix web framework.
 
 ## Project guidelines

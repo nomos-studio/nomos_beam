@@ -1,0 +1,40 @@
+version = 1
+SPDX-PackageName = "nomos_beam"
+SPDX-PackageSupplier = "rodgert@twrodgers.com"
+SPDX-PackageDownloadLocation = "https://github.com/nomos-studio/nomos_beam"
+
+[[annotations]]
+path = "assets/vendor/topbar.js"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2024 Buu Nguyen"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["assets/vendor/daisyui.js", "assets/vendor/daisyui-theme.js"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2020-2026 Pouya Saadeghi"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "assets/vendor/heroicons.js"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2020-2026 Tailwind Labs, Inc."
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "mix.lock"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025-2026 nomos-studio contributors"
+SPDX-License-Identifier = "EPL-2.0"
+
+[[annotations]]
+path = ["priv/static/favicon.ico", "priv/static/images/logo.svg", "priv/static/robots.txt"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025-2026 nomos-studio contributors"
+SPDX-License-Identifier = "EPL-2.0"
+
+[[annotations]]
+path = ["priv/gettext/en/LC_MESSAGES/errors.po", "priv/gettext/errors.pot"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025-2026 nomos-studio contributors"
+SPDX-License-Identifier = "EPL-2.0"

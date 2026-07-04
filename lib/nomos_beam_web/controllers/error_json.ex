@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeamWeb.ErrorJSON do
   @moduledoc """
   This module is invoked by your endpoint in case of errors on JSON requests.

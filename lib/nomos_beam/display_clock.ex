@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeam.DisplayClock do
   @moduledoc """
   5 Hz display frame clock. On each tick, drains the TxlogBuffer and broadcasts

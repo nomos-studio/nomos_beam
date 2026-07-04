@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 import Config
 
 # Note we also include the path to a cache manifest

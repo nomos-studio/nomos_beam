@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+//
+// SPDX-License-Identifier: EPL-2.0
+
 // If you want to use Phoenix channels, run `mix help phx.gen.channel`
 // to get started and then uncomment the line below.
 // import "./user_socket.js"

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Config module.
 #

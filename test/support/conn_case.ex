@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeamWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by

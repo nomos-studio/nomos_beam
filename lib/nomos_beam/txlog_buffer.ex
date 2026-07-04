@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeam.TxlogBuffer do
   @moduledoc """
   In-memory ring buffer for ctrl-tree echo entries received from nous.

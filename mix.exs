@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeam.MixProject do
   use Mix.Project
 
@@ -79,7 +83,15 @@ defmodule NomosBeam.MixProject do
         "esbuild nomos_beam --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      "lint.reuse": &reuse_lint/1,
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "lint.reuse", "test"]
     ]
+  end
+
+  defp reuse_lint(_args) do
+    case System.cmd("reuse", ["lint"], stderr_to_stdout: true) do
+      {output, 0} -> Mix.shell().info(output)
+      {output, _} -> Mix.raise("reuse lint failed:\n#{output}")
+    end
   end
 end

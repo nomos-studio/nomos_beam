@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025-2026 nomos-studio contributors
+#
+# SPDX-License-Identifier: EPL-2.0
+
 defmodule NomosBeam.AionSupervisor do
   @moduledoc """
   OTP Port supervisor for the aion C++ session substrate.
