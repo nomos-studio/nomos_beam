@@ -34,6 +34,9 @@ defmodule NomosBeam.NousPort do
   @doc "Route a key-up event through the ctrl-tree. Fire-and-forget."
   def key_up(key), do: GenServer.cast(__MODULE__, {:key_event, :key_up, key})
 
+  @doc "Notify nous that a supervised service has gone down. Fire-and-forget."
+  def service_down(service), do: GenServer.cast(__MODULE__, {:service_down, service})
+
   # ── GenServer callbacks ───────────────────────────────────────────────────
 
   @impl true
@@ -85,6 +88,15 @@ defmodule NomosBeam.NousPort do
 
   def handle_cast({:key_event, _op, _key}, state) do
     # nous not connected — drop silently
+    {:noreply, state}
+  end
+
+  def handle_cast({:service_down, service}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :service_down, service: service})
+    {:noreply, state}
+  end
+
+  def handle_cast({:service_down, _service}, state) do
     {:noreply, state}
   end
 
