@@ -131,6 +131,16 @@ defmodule NomosBeam.NousPort do
     NomosBeam.KeyboardServer.key_up(value)
   end
 
+  defp dispatch_echo([:transport | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:transport",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:theory | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:transport",
+                             {:ctrl_update, path, value})
+  end
+
   defp dispatch_echo(path, value) do
     Logger.debug("[NousPort] unhandled echo path=#{inspect(path)} value=#{inspect(value)}")
   end

@@ -5,9 +5,11 @@
 defmodule NomosBeamWeb.PianoLive do
   use NomosBeamWeb, :live_view
 
-  @keyboard_topic "keyboard:events"
-  @display_topic  "nomos:display:frame"
+  @keyboard_topic   "keyboard:events"
+  @display_topic    "nomos:display:frame"
+  @transport_topic  "ctrl:transport"
   @max_txlog_entries 50
+  @beat_flash_ms 120
 
   @key_layout [
     %{phys: "a", note: "C", color: :white, natural: true, left: 0},
@@ -29,13 +31,20 @@ defmodule NomosBeamWeb.PianoLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @keyboard_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @display_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @transport_topic)
     end
 
     {:ok,
      assign(socket,
        pressed: MapSet.new(),
        keys: @key_layout,
-       txlog_entries: []
+       txlog_entries: [],
+       bpm: nil,
+       beat_n: 0,
+       beat_flash: false,
+       playing: false,
+       theory_key: nil,
+       theory_mode: nil
      )}
   end
 
@@ -52,10 +61,63 @@ defmodule NomosBeamWeb.PianoLive do
     {:noreply, assign(socket, txlog_entries: updated)}
   end
 
+  def handle_info({:ctrl_update, [:transport, :bpm], value}, socket) do
+    {:noreply, assign(socket, bpm: value)}
+  end
+
+  def handle_info({:ctrl_update, [:transport, :playing], value}, socket) do
+    {:noreply, assign(socket, playing: value)}
+  end
+
+  def handle_info({:ctrl_update, [:transport, :beat_n], value}, socket)
+      when value != socket.assigns.beat_n do
+    Process.send_after(self(), :clear_beat_flash, @beat_flash_ms)
+    {:noreply, assign(socket, beat_n: value, beat_flash: true)}
+  end
+
+  def handle_info({:ctrl_update, [:transport, :beat_n], _value}, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_info(:clear_beat_flash, socket) do
+    {:noreply, assign(socket, beat_flash: false)}
+  end
+
+  def handle_info({:ctrl_update, [:theory, :key], value}, socket) do
+    {:noreply, assign(socket, theory_key: value)}
+  end
+
+  def handle_info({:ctrl_update, [:theory, :mode], value}, socket) do
+    {:noreply, assign(socket, theory_mode: value)}
+  end
+
+  def handle_info({:ctrl_update, _path, _value}, socket) do
+    {:noreply, socket}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center gap-10 p-10 min-h-screen">
+      <%!-- Status strip — BPM, beat flash, key/mode --%>
+      <div class="w-full max-w-2xl flex items-center gap-5 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
+        <span class="text-base-content/40 uppercase">bpm</span>
+        <span class="text-primary tabular-nums w-14">
+          {format_bpm(@bpm)}
+        </span>
+        <span class={[
+          "w-2 h-2 rounded-full transition-colors",
+          if(@beat_flash, do: "bg-primary", else: "bg-base-content/20")
+        ]}>
+        </span>
+        <span :if={@theory_key} class="ml-3 text-base-content/40 uppercase">key</span>
+        <span :if={@theory_key} class="text-accent">{@theory_key}</span>
+        <span :if={@theory_mode} class="text-accent/60">{@theory_mode}</span>
+        <span :if={!@playing && @bpm == nil} class="text-base-content/20 italic ml-auto">
+          waiting for kairos…
+        </span>
+      </div>
+
       <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">
         nomos-studio
       </header>
@@ -117,6 +179,10 @@ defmodule NomosBeamWeb.PianoLive do
     </div>
     """
   end
+
+  defp format_bpm(nil), do: "—"
+  defp format_bpm(bpm) when is_float(bpm), do: :erlang.float_to_binary(bpm, decimals: 1)
+  defp format_bpm(bpm), do: to_string(bpm)
 
   defp format_beat(nil), do: "—"
   defp format_beat(beat) when is_float(beat), do: :erlang.float_to_binary(beat, decimals: 2)
