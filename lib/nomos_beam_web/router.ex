@@ -23,6 +23,7 @@ defmodule NomosBeamWeb.Router do
 
     live "/", PianoLive
     live "/corpus", CorpusLive
+    live "/repl", ReplLive
   end
 
   # Other scopes may use custom stacks.

@@ -47,6 +47,9 @@ defmodule NomosBeam.NousPort do
   @doc "Ask nous to compute corpus data and write results to ctrl-tree. Fire-and-forget."
   def corpus_query(query), do: GenServer.cast(__MODULE__, {:corpus_query, query})
 
+  @doc "Ask nous to evaluate a Clojure form and write the result to [:repl :last_result]. Fire-and-forget."
+  def repl_eval(form), do: GenServer.cast(__MODULE__, {:repl_eval, form})
+
   # ── GenServer callbacks ───────────────────────────────────────────────────
 
   @impl true
@@ -128,6 +131,15 @@ defmodule NomosBeam.NousPort do
     {:noreply, state}
   end
 
+  def handle_cast({:repl_eval, form}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :repl_eval, form: form})
+    {:noreply, state}
+  end
+
+  def handle_cast({:repl_eval, _form}, state) do
+    {:noreply, state}
+  end
+
   # ── Private helpers ───────────────────────────────────────────────────────
 
   defp ensure_distributed do
@@ -167,6 +179,16 @@ defmodule NomosBeam.NousPort do
 
   defp dispatch_echo([:corpus | _] = path, value) do
     Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:corpus",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:session | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:session",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:repl | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:repl",
                              {:ctrl_update, path, value})
   end
 

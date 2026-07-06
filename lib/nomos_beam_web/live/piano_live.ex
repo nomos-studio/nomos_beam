@@ -116,9 +116,8 @@ defmodule NomosBeamWeb.PianoLive do
         <span :if={!@playing && @bpm == nil} class="text-base-content/20 italic">
           waiting for kairos…
         </span>
-        <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">
-          corpus →
-        </a>
+        <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">corpus</a>
+        <a href="/repl" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">repl</a>
       </div>
 
       <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">
