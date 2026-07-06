@@ -18,6 +18,7 @@ defmodule NomosBeam.Application do
       NomosBeam.NousPort,
       NomosBeam.AionSupervisor,
       NomosBeam.KairosSupervisor,
+      NomosBeam.M21Supervisor,
       NomosBeam.ScSynth,
       NomosBeam.DisplayClock,
       # Phase 3: NomosBeam.CtrlTreeProxy — ctrl-tree IPC bridge
