@@ -41,6 +41,12 @@ defmodule NomosBeam.NousPort do
   @doc "Notify nous that a supervised service has gone down. Fire-and-forget."
   def service_down(service), do: GenServer.cast(__MODULE__, {:service_down, service})
 
+  @doc "Write a value directly to a ctrl-tree path in nous. Fire-and-forget."
+  def ctrl_write(path, value), do: GenServer.cast(__MODULE__, {:ctrl_write, path, value})
+
+  @doc "Ask nous to compute corpus data and write results to ctrl-tree. Fire-and-forget."
+  def corpus_query(query), do: GenServer.cast(__MODULE__, {:corpus_query, query})
+
   # ── GenServer callbacks ───────────────────────────────────────────────────
 
   @impl true
@@ -104,6 +110,24 @@ defmodule NomosBeam.NousPort do
     {:noreply, state}
   end
 
+  def handle_cast({:ctrl_write, path, value}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :ctrl_write, path: path, value: value})
+    {:noreply, state}
+  end
+
+  def handle_cast({:ctrl_write, _path, _value}, state) do
+    {:noreply, state}
+  end
+
+  def handle_cast({:corpus_query, query}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :corpus_query, query: query})
+    {:noreply, state}
+  end
+
+  def handle_cast({:corpus_query, _query}, state) do
+    {:noreply, state}
+  end
+
   # ── Private helpers ───────────────────────────────────────────────────────
 
   defp ensure_distributed do
@@ -138,6 +162,11 @@ defmodule NomosBeam.NousPort do
 
   defp dispatch_echo([:theory | _] = path, value) do
     Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:transport",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:corpus | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:corpus",
                              {:ctrl_update, path, value})
   end
 

@@ -113,9 +113,12 @@ defmodule NomosBeamWeb.PianoLive do
         <span :if={@theory_key} class="ml-3 text-base-content/40 uppercase">key</span>
         <span :if={@theory_key} class="text-accent">{@theory_key}</span>
         <span :if={@theory_mode} class="text-accent/60">{@theory_mode}</span>
-        <span :if={!@playing && @bpm == nil} class="text-base-content/20 italic ml-auto">
+        <span :if={!@playing && @bpm == nil} class="text-base-content/20 italic">
           waiting for kairos…
         </span>
+        <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">
+          corpus →
+        </a>
       </div>
 
       <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">
