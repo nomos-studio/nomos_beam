@@ -10,33 +10,27 @@ on:
     branches: [main]
 jobs:
   build-and-test:
-    name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
+    name: Elixir (system) / ubuntu-24.04
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {elixir: "1.18", otp: "27"}
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1.24.1
-        with:
-          elixir-version: ${{ matrix.elixir }}
-          otp-version: ${{ matrix.otp }}
-          install-hex: false
-          install-rebar: false
+      - name: Install Elixir and OTP
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y elixir erlang-dev erlang-parsetools
+          mix local.hex --force
       - name: Cache deps
         uses: actions/cache@v4
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
+          key: ubuntu-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: ubuntu-mix-
       - name: Cache _build
         uses: actions/cache@v4
         with:
           path: _build
-          key: ${{ runner.os }}-build-${{ hashFiles('mix.lock') }}
-          restore-keys: ${{ runner.os }}-build-
+          key: ubuntu-build-${{ hashFiles('mix.lock') }}
+          restore-keys: ubuntu-build-
       - run: mix deps.get
       - run: mix compile
       - run: mix test
