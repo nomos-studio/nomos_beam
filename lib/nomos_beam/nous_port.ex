@@ -239,6 +239,10 @@ defmodule NomosBeam.NousPort do
                              {:ctrl_update, path, value})
   end
 
+  # Diagnostic echoes land in TxlogBuffer (for the txlog viewer) but need no
+  # dedicated PubSub broadcast — the txlog display is the verification surface.
+  defp dispatch_echo([:diagnostic | _], _value), do: :ok
+
   defp dispatch_echo(path, value) do
     Logger.debug("[NousPort] unhandled echo path=#{inspect(path)} value=#{inspect(value)}")
   end
