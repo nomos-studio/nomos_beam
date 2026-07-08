@@ -1,0 +1,9 @@
+{
+  "name": "nomos_beam_assets",
+  "version": "1.0.0",
+  "description": "nomos_beam frontend assets",
+  "private": true,
+  "dependencies": {
+    "verovio": "^6.2.0"
+  }
+}

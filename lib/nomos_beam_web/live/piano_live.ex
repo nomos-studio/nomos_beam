@@ -141,6 +141,7 @@ defmodule NomosBeamWeb.PianoLive do
         </span>
         <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">corpus</a>
         <a href="/repl" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">repl</a>
+        <a href="/notation" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">notation</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 

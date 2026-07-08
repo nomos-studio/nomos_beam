@@ -50,6 +50,16 @@ defmodule NomosBeam.NousPort do
   @doc "Ask nous to evaluate a Clojure form and write the result to [:repl :last_result]. Fire-and-forget."
   def repl_eval(form), do: GenServer.cast(__MODULE__, {:repl_eval, form})
 
+  @doc "Ask nous to export a corpus work as MusicXML + LilyPond. Fire-and-forget."
+  def notation_export_corpus(bwv), do: GenServer.cast(__MODULE__, {:notation_export_corpus, bwv})
+
+  @doc "Ask nous to export session note events in a beat range as MusicXML + LilyPond. Fire-and-forget."
+  def notation_export_session(beat_from, beat_to),
+    do: GenServer.cast(__MODULE__, {:notation_export_session, beat_from, beat_to})
+
+  @doc "Ask nous to write session LilyPond to disk and compile PDF. Fire-and-forget."
+  def notation_save_session, do: GenServer.cast(__MODULE__, :notation_save_session)
+
   @doc "Return process health status map for ProcessHealth aggregator."
   def status, do: GenServer.call(__MODULE__, :status)
 
@@ -150,6 +160,28 @@ defmodule NomosBeam.NousPort do
     {:noreply, state}
   end
 
+  def handle_cast({:notation_export_corpus, bwv}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :notation_export_corpus, bwv: bwv})
+    {:noreply, state}
+  end
+
+  def handle_cast({:notation_export_corpus, _bwv}, state), do: {:noreply, state}
+
+  def handle_cast({:notation_export_session, beat_from, beat_to}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node},
+                 %{op: :notation_export_session, beat_from: beat_from, beat_to: beat_to})
+    {:noreply, state}
+  end
+
+  def handle_cast({:notation_export_session, _bf, _bt}, state), do: {:noreply, state}
+
+  def handle_cast(:notation_save_session, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :notation_save_session})
+    {:noreply, state}
+  end
+
+  def handle_cast(:notation_save_session, state), do: {:noreply, state}
+
   # ── Private helpers ───────────────────────────────────────────────────────
 
   defp ensure_distributed do
@@ -199,6 +231,11 @@ defmodule NomosBeam.NousPort do
 
   defp dispatch_echo([:repl | _] = path, value) do
     Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:repl",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:notation | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:notation",
                              {:ctrl_update, path, value})
   end
 

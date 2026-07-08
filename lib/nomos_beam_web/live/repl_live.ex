@@ -155,6 +155,7 @@ defmodule NomosBeamWeb.ReplLive do
         <span :if={@pending_eval} class="text-primary/60 italic">evaluating…</span>
         <a href="/" class="ml-auto text-base-content/30 hover:text-base-content/60">← piano</a>
         <a href="/corpus" class="text-base-content/30 hover:text-base-content/60">corpus</a>
+        <a href="/notation" class="text-base-content/30 hover:text-base-content/60">notation</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
