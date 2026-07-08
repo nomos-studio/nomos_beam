@@ -28,8 +28,11 @@ defmodule NomosBeamWeb.ReplLive do
 
   use NomosBeamWeb, :live_view
 
+  import NomosBeamWeb.Components.ProcessHealth
+
   @repl_topic    "ctrl:repl"
   @session_topic "ctrl:session"
+  @health_topic  "nomos:process:health"
   @max_history   50
 
   @impl true
@@ -37,15 +40,18 @@ defmodule NomosBeamWeb.ReplLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @repl_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @session_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @health_topic)
     end
 
     {:ok,
      socket
      |> assign(
-          input:         "",
-          notes_path:    nil,
-          notes_content: "",
-          pending_eval:  false
+          input:          "",
+          notes_path:     nil,
+          notes_content:  "",
+          pending_eval:   false,
+          health:         [],
+          health_expanded: false
         )
      |> stream(:history, [])}
   end
@@ -91,6 +97,12 @@ defmodule NomosBeamWeb.ReplLive do
     {:noreply, socket}
   end
 
+  # ── process health ────────────────────────────────────────────────────────
+
+  def handle_info({:process_health, health}, socket) do
+    {:noreply, assign(socket, health: health)}
+  end
+
   # ── User events ───────────────────────────────────────────────────────────
 
   @impl true
@@ -119,18 +131,31 @@ defmodule NomosBeamWeb.ReplLive do
     {:noreply, stream(socket, :history, [], reset: true)}
   end
 
+  def handle_event("toggle_health", _params, socket) do
+    {:noreply, assign(socket, health_expanded: !socket.assigns.health_expanded)}
+  end
+
+  def handle_event("health_keydown", %{"key" => "Escape"}, socket) do
+    {:noreply, assign(socket, health_expanded: false)}
+  end
+
+  def handle_event("health_keydown", _params, socket) do
+    {:noreply, socket}
+  end
+
   # ── Render ────────────────────────────────────────────────────────────────
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center gap-6 p-8 min-h-screen">
-      <%!-- Nav strip --%>
+      <%!-- Nav + health strip --%>
       <div class="w-full max-w-5xl flex items-center gap-4 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
         <span class="text-base-content/40 uppercase">repl</span>
         <span :if={@pending_eval} class="text-primary/60 italic">evaluating…</span>
         <a href="/" class="ml-auto text-base-content/30 hover:text-base-content/60">← piano</a>
         <a href="/corpus" class="text-base-content/30 hover:text-base-content/60">corpus</a>
+        <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
       <div class="w-full max-w-5xl flex gap-6">

@@ -36,6 +36,8 @@ defmodule NomosBeam.KairosSupervisor do
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
+  def status, do: GenServer.call(__MODULE__, :status)
+
   @impl true
   def init(opts) do
     cfg          = Application.get_env(:nomos_beam, __MODULE__, [])
@@ -78,6 +80,17 @@ defmodule NomosBeam.KairosSupervisor do
   end
 
   def handle_info(_msg, state), do: {:noreply, state}
+
+  @impl true
+  def handle_call(:status, _from, state) do
+    s = cond do
+      not state.enabled -> :disabled
+      state.port != nil -> :up
+      true              -> :down
+    end
+    note = if s == :up, do: state.socket_path, else: nil
+    {:reply, %{name: :kairos, label: "kairos", status: s, note: note}, state}
+  end
 
   # ── Private ───────────────────────────────────────────────────────────────
 

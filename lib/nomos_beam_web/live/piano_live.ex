@@ -5,9 +5,12 @@
 defmodule NomosBeamWeb.PianoLive do
   use NomosBeamWeb, :live_view
 
+  import NomosBeamWeb.Components.ProcessHealth
+
   @keyboard_topic   "keyboard:events"
   @display_topic    "nomos:display:frame"
   @transport_topic  "ctrl:transport"
+  @health_topic     "nomos:process:health"
   @max_txlog_entries 50
   @beat_flash_ms 120
 
@@ -32,6 +35,7 @@ defmodule NomosBeamWeb.PianoLive do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @keyboard_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @display_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @transport_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @health_topic)
     end
 
     {:ok,
@@ -44,7 +48,9 @@ defmodule NomosBeamWeb.PianoLive do
        beat_flash: false,
        playing: false,
        theory_key: nil,
-       theory_mode: nil
+       theory_mode: nil,
+       health: [],
+       health_expanded: false
      )}
   end
 
@@ -59,6 +65,10 @@ defmodule NomosBeamWeb.PianoLive do
       |> Enum.take(-@max_txlog_entries)
 
     {:noreply, assign(socket, txlog_entries: updated)}
+  end
+
+  def handle_info({:process_health, health}, socket) do
+    {:noreply, assign(socket, health: health)}
   end
 
   def handle_info({:ctrl_update, [:transport, :bpm], value}, socket) do
@@ -96,10 +106,23 @@ defmodule NomosBeamWeb.PianoLive do
   end
 
   @impl true
+  def handle_event("toggle_health", _params, socket) do
+    {:noreply, assign(socket, health_expanded: !socket.assigns.health_expanded)}
+  end
+
+  def handle_event("health_keydown", %{"key" => "Escape"}, socket) do
+    {:noreply, assign(socket, health_expanded: false)}
+  end
+
+  def handle_event("health_keydown", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex flex-col items-center gap-10 p-10 min-h-screen">
-      <%!-- Status strip — BPM, beat flash, key/mode --%>
+      <%!-- Status strip — BPM, beat flash, key/mode, health --%>
       <div class="w-full max-w-2xl flex items-center gap-5 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
         <span class="text-base-content/40 uppercase">bpm</span>
         <span class="text-primary tabular-nums w-14">
@@ -118,6 +141,7 @@ defmodule NomosBeamWeb.PianoLive do
         </span>
         <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">corpus</a>
         <a href="/repl" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">repl</a>
+        <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
       <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">

@@ -28,14 +28,18 @@ defmodule NomosBeamWeb.CorpusLive do
 
   use NomosBeamWeb, :live_view
 
-  @corpus_topic   "ctrl:corpus"
+  import NomosBeamWeb.Components.ProcessHealth
+
+  @corpus_topic    "ctrl:corpus"
   @transport_topic "ctrl:transport"
+  @health_topic    "nomos:process:health"
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @corpus_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @transport_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @health_topic)
       NomosBeam.NousPort.corpus_query(:list_chorales)
     end
 
@@ -47,7 +51,9 @@ defmodule NomosBeamWeb.CorpusLive do
        theory_key:     nil,
        theory_mode:    nil,
        applying:       false,
-       loading_meta:   false
+       loading_meta:   false,
+       health:         [],
+       health_expanded: false
      )}
   end
 
@@ -82,6 +88,12 @@ defmodule NomosBeamWeb.CorpusLive do
     {:noreply, socket}
   end
 
+  # ── process health ────────────────────────────────────────────────────────
+
+  def handle_info({:process_health, health}, socket) do
+    {:noreply, assign(socket, health: health)}
+  end
+
   # ── User events ───────────────────────────────────────────────────────────
 
   @impl true
@@ -102,6 +114,18 @@ defmodule NomosBeamWeb.CorpusLive do
     end
   end
 
+  def handle_event("toggle_health", _params, socket) do
+    {:noreply, assign(socket, health_expanded: !socket.assigns.health_expanded)}
+  end
+
+  def handle_event("health_keydown", %{"key" => "Escape"}, socket) do
+    {:noreply, assign(socket, health_expanded: false)}
+  end
+
+  def handle_event("health_keydown", _params, socket) do
+    {:noreply, socket}
+  end
+
   # ── Render ────────────────────────────────────────────────────────────────
 
   @impl true
@@ -116,6 +140,7 @@ defmodule NomosBeamWeb.CorpusLive do
         <a href="/" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">
           ← piano
         </a>
+        <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
       <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">

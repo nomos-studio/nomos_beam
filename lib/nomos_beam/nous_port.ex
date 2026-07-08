@@ -50,6 +50,9 @@ defmodule NomosBeam.NousPort do
   @doc "Ask nous to evaluate a Clojure form and write the result to [:repl :last_result]. Fire-and-forget."
   def repl_eval(form), do: GenServer.cast(__MODULE__, {:repl_eval, form})
 
+  @doc "Return process health status map for ProcessHealth aggregator."
+  def status, do: GenServer.call(__MODULE__, :status)
+
   # ── GenServer callbacks ───────────────────────────────────────────────────
 
   @impl true
@@ -90,6 +93,13 @@ defmodule NomosBeam.NousPort do
   def handle_info(msg, state) do
     Logger.debug("[NousPort] unexpected message: #{inspect(msg)}")
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_call(:status, _from, state) do
+    s = if state.connected, do: :up, else: :down
+    note = if state.connected, do: to_string(@nous_node), else: nil
+    {:reply, %{name: :nous, label: "nous", status: s, note: note}, state}
   end
 
   @impl true

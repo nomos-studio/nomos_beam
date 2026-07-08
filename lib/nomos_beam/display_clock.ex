@@ -4,19 +4,19 @@
 
 defmodule NomosBeam.DisplayClock do
   @moduledoc """
-  5 Hz display frame clock. On each tick, drains the TxlogBuffer and broadcasts
-  any new entries via PubSub on \"nomos:display:frame\".
+  5 Hz display frame clock. On each tick:
+  - drains TxlogBuffer and broadcasts any new entries on "nomos:display:frame"
+  - snapshots process health and broadcasts on "nomos:process:health"
 
   This is the universal push cadence for all live UI matter — no panel receives
-  data faster than this rate. Subscribing LiveViews receive {:display_frame, entries}
-  where entries is a (possibly empty) list of ctrl-tree echo maps in chronological
-  order. LiveViews that receive an empty list should simply ignore the tick.
+  data faster than this rate.
   """
 
   use GenServer
 
   @interval 200
   @topic "nomos:display:frame"
+  @health_topic "nomos:process:health"
 
   def start_link(_opts), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
@@ -35,6 +35,9 @@ defmodule NomosBeam.DisplayClock do
       entries ->
         Phoenix.PubSub.broadcast(NomosBeam.PubSub, @topic, {:display_frame, entries})
     end
+
+    health = NomosBeam.ProcessHealth.snapshot()
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, @health_topic, {:process_health, health})
 
     Process.send_after(self(), :tick, @interval)
     {:noreply, state}
