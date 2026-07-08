@@ -151,20 +151,20 @@ defmodule NomosBeamWeb.ReplLive do
     <div class="flex flex-col items-center gap-6 p-8 min-h-screen">
       <%!-- Nav + health strip --%>
       <div class="w-full max-w-5xl flex items-center gap-4 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
-        <span class="text-base-content/40 uppercase">repl</span>
-        <span :if={@pending_eval} class="text-primary/60 italic">evaluating…</span>
-        <a href="/" class="ml-auto text-base-content/30 hover:text-base-content/60">← piano</a>
-        <a href="/corpus" class="text-base-content/30 hover:text-base-content/60">corpus</a>
-        <a href="/notation" class="text-base-content/30 hover:text-base-content/60">notation</a>
+        <span class="text-base-content/65 uppercase">repl</span>
+        <span :if={@pending_eval} class="text-primary/80 italic">evaluating…</span>
+        <a href="/" class="ml-auto text-base-content/55 hover:text-base-content/85">← piano</a>
+        <a href="/corpus" class="text-base-content/55 hover:text-base-content/85">corpus</a>
+        <a href="/notation" class="text-base-content/55 hover:text-base-content/85">notation</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
       <div class="w-full max-w-5xl flex gap-6">
         <%!-- REPL panel --%>
         <div class="flex-1 min-w-0 flex flex-col gap-3">
-          <h2 class="font-mono text-xs text-base-content/40 tracking-widest uppercase">
+          <h2 class="font-mono text-xs text-base-content/65 tracking-widest uppercase">
             clojure repl
-            <span class="text-base-content/20 ml-2 normal-case">nREPL also on localhost:7888</span>
+            <span class="text-base-content/45 ml-2 normal-case">nREPL also on localhost:7888</span>
           </h2>
 
           <%!-- Output history --%>
@@ -172,15 +172,15 @@ defmodule NomosBeamWeb.ReplLive do
             id="repl-output"
             class="bg-base-200 rounded p-3 h-80 overflow-y-auto font-mono text-xs flex flex-col gap-2"
           >
-            <p :if={Enum.empty?(@streams.history.inserts)} class="text-base-content/20 italic" id="repl-empty">
+            <p :if={Enum.empty?(@streams.history.inserts)} class="text-base-content/45 italic" id="repl-empty">
               waiting for nous session… (call (session!) in CIDER or terminal)
             </p>
             <div :for={{dom_id, entry} <- @streams.history} id={dom_id}>
-              <div class="text-base-content/50">
-                <span class="text-primary/60">⟹</span>
+              <div class="text-base-content/80">
+                <span class="text-primary/80">⟹</span>
                 <span class="ml-1">{entry.form}</span>
               </div>
-              <div :if={entry.out && entry.out != ""} class="text-base-content/40 ml-4 whitespace-pre-wrap">
+              <div :if={entry.out && entry.out != ""} class="text-base-content/65 ml-4 whitespace-pre-wrap">
                 {entry.out}
               </div>
               <div :if={entry.value} class="text-accent ml-4">{entry.value}</div>
@@ -209,7 +209,7 @@ defmodule NomosBeamWeb.ReplLive do
             <button
               type="button"
               phx-click="clear_history"
-              class="font-mono text-xs text-base-content/30 hover:text-base-content/60 px-2"
+              class="font-mono text-xs text-base-content/55 hover:text-base-content/85 px-2"
             >
               clear
             </button>
@@ -218,13 +218,13 @@ defmodule NomosBeamWeb.ReplLive do
 
         <%!-- Notes panel --%>
         <div class="w-72 shrink-0 flex flex-col gap-3">
-          <h2 class="font-mono text-xs text-base-content/40 tracking-widest uppercase">
+          <h2 class="font-mono text-xs text-base-content/65 tracking-widest uppercase">
             session notes
-            <span :if={@notes_path} class="text-base-content/20 ml-2 normal-case truncate">
+            <span :if={@notes_path} class="text-base-content/45 ml-2 normal-case truncate">
               {Path.basename(@notes_path)}
             </span>
           </h2>
-          <p :if={is_nil(@notes_path)} class="text-base-content/20 italic font-mono text-xs">
+          <p :if={is_nil(@notes_path)} class="text-base-content/45 italic font-mono text-xs">
             waiting for session start…
           </p>
           <textarea
@@ -234,7 +234,7 @@ defmodule NomosBeamWeb.ReplLive do
             class="w-full h-80 font-mono text-xs bg-base-200 border border-base-300 rounded p-3 resize-none focus:outline-none focus:border-primary"
             spellcheck="false"
           >{@notes_content}</textarea>
-          <p :if={@notes_path} class="font-mono text-xs text-base-content/20">
+          <p :if={@notes_path} class="font-mono text-xs text-base-content/45">
             auto-saves on change · git tracks {Path.basename(@notes_path)}
           </p>
         </div>

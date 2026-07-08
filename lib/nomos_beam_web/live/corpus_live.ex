@@ -134,30 +134,30 @@ defmodule NomosBeamWeb.CorpusLive do
     <div class="flex flex-col items-center gap-8 p-10 min-h-screen">
       <%!-- Status strip (mirrors PianoLive) --%>
       <div class="w-full max-w-3xl flex items-center gap-5 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
-        <span class="text-base-content/40 uppercase">key</span>
+        <span class="text-base-content/65 uppercase">key</span>
         <span class="text-accent">{@theory_key || "—"}</span>
-        <span class="text-accent/60">{@theory_mode || ""}</span>
-        <a href="/" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">
+        <span class="text-accent/80">{@theory_mode || ""}</span>
+        <a href="/" class="ml-auto text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">
           ← piano
         </a>
-        <a href="/repl" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">repl</a>
-        <a href="/notation" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">notation</a>
+        <a href="/repl" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">repl</a>
+        <a href="/notation" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">notation</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
-      <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">
+      <header class="font-mono tracking-widest text-base-content/70 text-sm uppercase">
         corpora browser
       </header>
 
       <div class="w-full max-w-3xl flex gap-6">
         <%!-- Chorale list --%>
         <div class="flex-1 min-w-0">
-          <h2 class="font-mono text-xs text-base-content/40 tracking-widest uppercase mb-2">
+          <h2 class="font-mono text-xs text-base-content/65 tracking-widest uppercase mb-2">
             bach chorales
-            <span :if={@chorales} class="text-base-content/20 ml-2">({length(@chorales)})</span>
+            <span :if={@chorales} class="text-base-content/45 ml-2">({length(@chorales)})</span>
           </h2>
           <div class="bg-base-200 rounded p-2 h-96 overflow-y-auto">
-            <p :if={is_nil(@chorales)} class="text-base-content/20 italic font-mono text-xs p-2">
+            <p :if={is_nil(@chorales)} class="text-base-content/45 italic font-mono text-xs p-2">
               waiting for m21 server…
             </p>
             <div
@@ -177,38 +177,38 @@ defmodule NomosBeamWeb.CorpusLive do
 
         <%!-- Metadata panel --%>
         <div class="w-64 shrink-0">
-          <h2 class="font-mono text-xs text-base-content/40 tracking-widest uppercase mb-2">
+          <h2 class="font-mono text-xs text-base-content/65 tracking-widest uppercase mb-2">
             metadata
           </h2>
           <div class="bg-base-200 rounded p-4 h-96 flex flex-col gap-3">
-            <p :if={is_nil(@selected_bwv)} class="text-base-content/20 italic font-mono text-xs">
+            <p :if={is_nil(@selected_bwv)} class="text-base-content/45 italic font-mono text-xs">
               select a work
             </p>
 
-            <p :if={@loading_meta && !@metadata} class="text-base-content/30 italic font-mono text-xs">
+            <p :if={@loading_meta && !@metadata} class="text-base-content/55 italic font-mono text-xs">
               analysing…
             </p>
 
             <div :if={@metadata} class="flex flex-col gap-2 font-mono text-xs">
               <div>
-                <span class="text-base-content/40 uppercase">bwv</span>
+                <span class="text-base-content/65 uppercase">bwv</span>
                 <span class="text-base-content ml-2">{@metadata[:bwv]}</span>
               </div>
               <div :if={@metadata[:title] != ""}>
-                <span class="text-base-content/40 uppercase">title</span>
-                <span class="text-base-content/70 ml-2">{@metadata[:title]}</span>
+                <span class="text-base-content/65 uppercase">title</span>
+                <span class="text-base-content/85 ml-2">{@metadata[:title]}</span>
               </div>
               <div>
-                <span class="text-base-content/40 uppercase">key</span>
+                <span class="text-base-content/65 uppercase">key</span>
                 <span class="text-accent ml-2">{@metadata[:key]}</span>
-                <span class="text-accent/60 ml-1">{@metadata[:mode]}</span>
+                <span class="text-accent/80 ml-1">{@metadata[:mode]}</span>
               </div>
               <div>
-                <span class="text-base-content/40 uppercase">time</span>
+                <span class="text-base-content/65 uppercase">time</span>
                 <span class="text-base-content ml-2">{@metadata[:"time-sig"]}</span>
               </div>
               <div>
-                <span class="text-base-content/40 uppercase">bars</span>
+                <span class="text-base-content/65 uppercase">bars</span>
                 <span class="text-base-content ml-2">{@metadata[:measures]}</span>
               </div>
 

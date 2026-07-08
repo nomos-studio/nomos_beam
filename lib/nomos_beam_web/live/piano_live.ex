@@ -15,19 +15,21 @@ defmodule NomosBeamWeb.PianoLive do
   @beat_flash_ms 120
 
   @key_layout [
-    %{phys: "a", note: "C", color: :white, natural: true, left: 0},
+    %{phys: "a", note: "C",  color: :white, natural: true,  left: 0},
     %{phys: "w", note: "C♯", color: :black, natural: false, left: 28},
-    %{phys: "s", note: "D", color: :white, natural: false, left: 40},
+    %{phys: "s", note: "D",  color: :white, natural: false, left: 40},
     %{phys: "e", note: "D♯", color: :black, natural: false, left: 68},
-    %{phys: "d", note: "E", color: :white, natural: false, left: 80},
-    %{phys: "f", note: "F", color: :white, natural: false, left: 120},
+    %{phys: "d", note: "E",  color: :white, natural: false, left: 80},
+    %{phys: "f", note: "F",  color: :white, natural: false, left: 120},
     %{phys: "t", note: "F♯", color: :black, natural: false, left: 148},
-    %{phys: "g", note: "G", color: :white, natural: false, left: 160},
+    %{phys: "g", note: "G",  color: :white, natural: false, left: 160},
     %{phys: "y", note: "G♯", color: :black, natural: false, left: 188},
-    %{phys: "h", note: "A", color: :white, natural: false, left: 200},
+    %{phys: "h", note: "A",  color: :white, natural: false, left: 200},
     %{phys: "u", note: "A♯", color: :black, natural: false, left: 228},
-    %{phys: "j", note: "B", color: :white, natural: false, left: 240}
+    %{phys: "j", note: "B",  color: :white, natural: false, left: 240}
   ]
+
+  @valid_piano_keys MapSet.new(["a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j"])
 
   @impl true
   def mount(_params, _session, socket) do
@@ -53,6 +55,8 @@ defmodule NomosBeamWeb.PianoLive do
        health_expanded: false
      )}
   end
+
+  # ── PubSub / info ─────────────────────────────────────────────────────────
 
   @impl true
   def handle_info({:keyboard_state, pressed}, socket) do
@@ -105,7 +109,39 @@ defmodule NomosBeamWeb.PianoLive do
     {:noreply, socket}
   end
 
+  # ── Keyboard events ───────────────────────────────────────────────────────
+
   @impl true
+  def handle_event("piano_keydown", %{"key" => key, "repeat" => true}, socket) do
+    # Suppress browser key-repeat — we only want the initial press.
+    _ = key
+    {:noreply, socket}
+  end
+
+  def handle_event("piano_keydown", %{"key" => key}, socket) do
+    if MapSet.member?(@valid_piano_keys, key) do
+      NomosBeam.NousPort.key_down(key)
+      {:noreply, assign(socket, pressed: MapSet.put(socket.assigns.pressed, key))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("piano_keydown", _params, socket), do: {:noreply, socket}
+
+  def handle_event("piano_keyup", %{"key" => key}, socket) do
+    if MapSet.member?(@valid_piano_keys, key) do
+      NomosBeam.NousPort.key_up(key)
+      {:noreply, assign(socket, pressed: MapSet.delete(socket.assigns.pressed, key))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("piano_keyup", _params, socket), do: {:noreply, socket}
+
+  # ── Health panel ──────────────────────────────────────────────────────────
+
   def handle_event("toggle_health", _params, socket) do
     {:noreply, assign(socket, health_expanded: !socket.assigns.health_expanded)}
   end
@@ -118,38 +154,43 @@ defmodule NomosBeamWeb.PianoLive do
     {:noreply, socket}
   end
 
+  # ── Render ────────────────────────────────────────────────────────────────
+
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col items-center gap-10 p-10 min-h-screen">
-      <%!-- Status strip — BPM, beat flash, key/mode, health --%>
+    <div class="flex flex-col items-center gap-10 p-10 min-h-screen"
+         phx-window-keydown="piano_keydown"
+         phx-window-keyup="piano_keyup">
+
+      <%!-- Status strip — BPM, beat flash, key/mode, nav, health --%>
       <div class="w-full max-w-2xl flex items-center gap-5 px-4 py-2 bg-base-200 rounded font-mono text-xs tracking-widest">
-        <span class="text-base-content/40 uppercase">bpm</span>
+        <span class="text-base-content/60 uppercase">bpm</span>
         <span class="text-primary tabular-nums w-14">
           {format_bpm(@bpm)}
         </span>
         <span class={[
           "w-2 h-2 rounded-full transition-colors",
-          if(@beat_flash, do: "bg-primary", else: "bg-base-content/20")
+          if(@beat_flash, do: "bg-primary", else: "bg-base-content/30")
         ]}>
         </span>
-        <span :if={@theory_key} class="ml-3 text-base-content/40 uppercase">key</span>
+        <span :if={@theory_key} class="ml-3 text-base-content/60 uppercase">key</span>
         <span :if={@theory_key} class="text-accent">{@theory_key}</span>
-        <span :if={@theory_mode} class="text-accent/60">{@theory_mode}</span>
-        <span :if={!@playing && @bpm == nil} class="text-base-content/20 italic">
+        <span :if={@theory_mode} class="text-accent/80">{@theory_mode}</span>
+        <span :if={!@playing && @bpm == nil} class="text-base-content/45 italic">
           waiting for kairos…
         </span>
-        <a href="/corpus" class="ml-auto text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">corpus</a>
-        <a href="/repl" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">repl</a>
-        <a href="/notation" class="text-base-content/30 hover:text-base-content/60 text-xs font-mono tracking-widest">notation</a>
+        <a href="/corpus" class="ml-auto text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">corpus</a>
+        <a href="/repl" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">repl</a>
+        <a href="/notation" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">notation</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
-      <header class="font-mono tracking-widest text-base-content/50 text-sm uppercase">
+      <header class="font-mono tracking-widest text-base-content/70 text-sm uppercase">
         nomos-studio
       </header>
 
-      <%!-- Piano keyboard panel --%>
+      <%!-- Piano keyboard --%>
       <div class="piano" style="position: relative; width: 280px; height: 150px;">
         <div
           :for={key <- @keys}
@@ -166,39 +207,39 @@ defmodule NomosBeamWeb.PianoLive do
         </div>
       </div>
 
-      <p class="font-mono text-xs text-base-content/30 tracking-widest">
+      <p class="font-mono text-xs text-base-content/55 tracking-widest">
         a · s · d · f · g · h · j &nbsp;→&nbsp; C D E F G A B
       </p>
 
-      <%!-- Txlog viewer panel --%>
+      <%!-- Txlog viewer --%>
       <div class="w-full max-w-2xl">
-        <h2 class="font-mono text-xs text-base-content/40 tracking-widest uppercase mb-2">
+        <h2 class="font-mono text-xs text-base-content/60 tracking-widest uppercase mb-2">
           ctrl-tree txlog
         </h2>
         <div class="font-mono text-xs bg-base-200 rounded p-3 h-48 overflow-y-auto">
           <table class="w-full border-collapse">
             <thead>
-              <tr class="text-base-content/40">
+              <tr class="text-base-content/60">
                 <th class="text-left pr-4 pb-1 font-normal w-16">beat</th>
                 <th class="text-left pr-4 pb-1 font-normal">path</th>
                 <th class="text-left font-normal">value</th>
               </tr>
             </thead>
             <tbody>
-              <tr :for={entry <- @txlog_entries} class="text-base-content/70">
+              <tr :for={entry <- @txlog_entries} class="text-base-content/85">
                 <td class="pr-4 tabular-nums">
                   {format_beat(entry[:beat])}
                 </td>
-                <td class="pr-4 text-primary/80">
+                <td class="pr-4 text-primary">
                   {format_path(entry[:path])}
                 </td>
-                <td class="text-accent/80">
+                <td class="text-accent">
                   {inspect(entry[:value])}
                 </td>
               </tr>
             </tbody>
           </table>
-          <p :if={@txlog_entries == []} class="text-base-content/20 italic">
+          <p :if={@txlog_entries == []} class="text-base-content/45 italic">
             waiting for ctrl-tree events…
           </p>
         </div>

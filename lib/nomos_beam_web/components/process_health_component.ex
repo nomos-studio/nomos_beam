@@ -37,7 +37,7 @@ defmodule NomosBeamWeb.Components.ProcessHealth do
         phx-click="toggle_health"
         title="Process health — click to expand"
       >
-        <span class="text-base-content/25 text-xs font-mono tracking-widest uppercase group-hover:text-base-content/40 transition-colors">
+        <span class="text-base-content/50 text-xs font-mono tracking-widest uppercase group-hover:text-base-content/70 transition-colors">
           health
         </span>
         <span :for={svc <- @health} class="flex items-center">
@@ -56,9 +56,9 @@ defmodule NomosBeamWeb.Components.ProcessHealth do
         phx-window-keydown="health_keydown"
       >
         <div class="flex items-center justify-between mb-2.5">
-          <span class="text-base-content/35 uppercase tracking-widest text-[10px]">process health</span>
+          <span class="text-base-content/60 uppercase tracking-widest text-[10px]">process health</span>
           <button
-            class="text-base-content/30 hover:text-base-content/60 leading-none px-1"
+            class="text-base-content/55 hover:text-base-content/85 leading-none px-1"
             phx-click="toggle_health"
           >×</button>
         </div>
@@ -68,9 +68,9 @@ defmodule NomosBeamWeb.Components.ProcessHealth do
               <td class="pr-2 py-0.5">
                 <span class={["inline-block w-1.5 h-1.5 rounded-full", dot_class(svc.status)]}></span>
               </td>
-              <td class="pr-3 py-0.5 text-base-content/55">{svc.label}</td>
+              <td class="pr-3 py-0.5 text-base-content/80">{svc.label}</td>
               <td class={"py-0.5 #{status_text_class(svc.status)}"}>{svc.status}</td>
-              <td :if={svc.note} class="py-0.5 pl-2 text-base-content/25 truncate max-w-[6rem]">
+              <td :if={svc.note} class="py-0.5 pl-2 text-base-content/50 truncate max-w-[6rem]">
                 {svc.note}
               </td>
             </tr>
@@ -83,9 +83,9 @@ defmodule NomosBeamWeb.Components.ProcessHealth do
 
   defp dot_class(:up),       do: "bg-success"
   defp dot_class(:down),     do: "bg-error"
-  defp dot_class(:disabled), do: "bg-base-content/20"
+  defp dot_class(:disabled), do: "bg-base-content/35"
 
-  defp status_text_class(:up),       do: "text-success/70"
-  defp status_text_class(:down),     do: "text-error/70"
-  defp status_text_class(:disabled), do: "text-base-content/30"
+  defp status_text_class(:up),       do: "text-success"
+  defp status_text_class(:down),     do: "text-error"
+  defp status_text_class(:disabled), do: "text-base-content/50"
 end
