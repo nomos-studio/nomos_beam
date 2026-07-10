@@ -60,6 +60,9 @@ defmodule NomosBeam.NousPort do
   @doc "Ask nous to write session LilyPond to disk and compile PDF. Fire-and-forget."
   def notation_save_session, do: GenServer.cast(__MODULE__, :notation_save_session)
 
+  @doc "Signal nous to reconnect to aion at the next bar boundary. Fire-and-forget."
+  def aion_reconnect, do: GenServer.cast(__MODULE__, :aion_reconnect)
+
   @doc "Return process health status map for ProcessHealth aggregator."
   def status, do: GenServer.call(__MODULE__, :status)
 
@@ -181,6 +184,13 @@ defmodule NomosBeam.NousPort do
   end
 
   def handle_cast(:notation_save_session, state), do: {:noreply, state}
+
+  def handle_cast(:aion_reconnect, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :aion_reconnect})
+    {:noreply, state}
+  end
+
+  def handle_cast(:aion_reconnect, state), do: {:noreply, state}
 
   # ── Private helpers ───────────────────────────────────────────────────────
 

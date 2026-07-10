@@ -26,6 +26,9 @@ defmodule NomosBeam.AionSupervisor do
 
   @socket_path "/tmp/aion.sock"
   @restart_delay 2_000
+  # Grace period after Port.open before telling nous to reconnect.
+  # aion typically creates the socket within 200ms; 1s is a safe margin.
+  @reconnect_notify_delay 1_000
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -49,6 +52,7 @@ defmodule NomosBeam.AionSupervisor do
       Logger.info("[AionSupervisor] starting #{state.aion_path} #{Enum.join(args, " ")}")
       port = Port.open({:spawn_executable, state.aion_path},
                        [:binary, :stderr_to_stdout, :exit_status, args: args])
+      Process.send_after(self(), :notify_aion_ready, @reconnect_notify_delay)
       {:noreply, %{state | port: port}}
     else
       Logger.warning("[AionSupervisor] aion binary not found at #{state.aion_path} — will retry")
@@ -64,8 +68,17 @@ defmodule NomosBeam.AionSupervisor do
 
   def handle_info({port, {:exit_status, code}}, %{port: port} = state) do
     Logger.warning("[AionSupervisor] aion exited (code #{code}) — restarting in #{@restart_delay}ms")
+    NomosBeam.NousPort.service_down(:aion)
     Process.send_after(self(), :start_aion, @restart_delay)
     {:noreply, %{state | port: nil}}
+  end
+
+  # Fired @reconnect_notify_delay ms after Port.open.  aion's socket is
+  # typically ready within 200ms; 1s is conservative.  Only notify when
+  # the port is still alive (catches the case where aion died immediately).
+  def handle_info(:notify_aion_ready, %{port: port} = state) when port != nil do
+    NomosBeam.NousPort.aion_reconnect()
+    {:noreply, state}
   end
 
   def handle_info(_msg, state), do: {:noreply, state}
