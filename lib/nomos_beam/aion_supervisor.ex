@@ -38,7 +38,9 @@ defmodule NomosBeam.AionSupervisor do
   def init(opts) do
     cfg = Application.get_env(:nomos_beam, __MODULE__, [])
     env_set   = System.get_env("NOMOS_STUDIO_SRC") != nil
-    enabled   = Keyword.get(opts, :enabled,    Keyword.get(cfg, :enabled, env_set))
+    env_off   = System.get_env("NOMOS_AION_ENABLED") == "false"
+    enabled   = if env_off, do: false,
+                else: Keyword.get(opts, :enabled, Keyword.get(cfg, :enabled, env_set))
     midi_port = Keyword.get(opts, :midi_port,  Keyword.get(cfg, :midi_port, -1))
     aion_path = Keyword.get(opts, :aion_path,  Keyword.get(cfg, :aion_path, default_binary()))
     if enabled, do: send(self(), :start_aion)
