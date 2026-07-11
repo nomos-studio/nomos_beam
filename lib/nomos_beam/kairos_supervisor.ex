@@ -11,6 +11,11 @@ defmodule NomosBeam.KairosSupervisor do
   restarts after a short delay.  kairos stdout/stderr is forwarded to
   Logger at debug level.
 
+  Liveness: kairos is started with --heartbeat-ms which causes it to emit
+  "[heartbeat]" to stderr every @heartbeat_ms milliseconds.  If no heartbeat
+  is received within @heartbeat_timeout_ms the port is killed and the normal
+  restart/reconnect flow fires.
+
   kairos is started with audio enabled (it drives SurgeXT audio output)
   and bound to its Unix domain socket at /tmp/kairos.sock.
 
@@ -34,6 +39,9 @@ defmodule NomosBeam.KairosSupervisor do
   @socket_path "/tmp/kairos.sock"
   @restart_delay 3_000
   @reconnect_notify_delay 1_000
+  @heartbeat_ms 5_000
+  @heartbeat_check_interval 10_000
+  @heartbeat_timeout_ms 15_000
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -52,7 +60,8 @@ defmodule NomosBeam.KairosSupervisor do
     audio_device = Keyword.get(opts, :audio_device,  Keyword.get(cfg, :audio_device, 0))
     if enabled, do: send(self(), :start_kairos)
     {:ok, %{port: nil, enabled: enabled, kairos_path: kairos_path,
-            socket_path: socket_path, bpm: bpm, audio_device: audio_device}}
+            socket_path: socket_path, bpm: bpm, audio_device: audio_device,
+            last_heartbeat_at: nil}}
   end
 
   @impl true
@@ -63,7 +72,9 @@ defmodule NomosBeam.KairosSupervisor do
       port = Port.open({:spawn_executable, state.kairos_path},
                        [:binary, :stderr_to_stdout, :exit_status, args: args])
       Process.send_after(self(), :notify_kairos_ready, @reconnect_notify_delay)
-      {:noreply, %{state | port: port}}
+      Process.send_after(self(), :check_heartbeat, @heartbeat_check_interval)
+      now = System.monotonic_time(:millisecond)
+      {:noreply, %{state | port: port, last_heartbeat_at: now}}
     else
       Logger.warning("[KairosSupervisor] kairos binary not found at #{state.kairos_path} — will retry")
       Process.send_after(self(), :start_kairos, @restart_delay)
@@ -72,15 +83,34 @@ defmodule NomosBeam.KairosSupervisor do
   end
 
   def handle_info({port, {:data, line}}, %{port: port} = state) do
-    Logger.debug("[kairos] #{String.trim(line)}")
-    {:noreply, state}
+    trimmed = String.trim(line)
+    if String.contains?(trimmed, "[heartbeat]") do
+      {:noreply, %{state | last_heartbeat_at: System.monotonic_time(:millisecond)}}
+    else
+      Logger.debug("[kairos] #{trimmed}")
+      {:noreply, state}
+    end
   end
 
   def handle_info({port, {:exit_status, code}}, %{port: port} = state) do
     Logger.warning("[KairosSupervisor] kairos exited (code #{code}) — notifying nous, restarting in #{@restart_delay}ms")
     NomosBeam.NousPort.service_down(:kairos)
     Process.send_after(self(), :start_kairos, @restart_delay)
-    {:noreply, %{state | port: nil}}
+    {:noreply, %{state | port: nil, last_heartbeat_at: nil}}
+  end
+
+  def handle_info(:check_heartbeat, %{port: port, last_heartbeat_at: last_hb} = state)
+      when port != nil do
+    now = System.monotonic_time(:millisecond)
+    if last_hb != nil and now - last_hb > @heartbeat_timeout_ms do
+      Logger.warning("[KairosSupervisor] kairos heartbeat timeout — killing hung process")
+      Port.close(port)
+      # {:exit_status, _} will fire and trigger the normal restart flow
+      {:noreply, state}
+    else
+      Process.send_after(self(), :check_heartbeat, @heartbeat_check_interval)
+      {:noreply, state}
+    end
   end
 
   def handle_info(:notify_kairos_ready, %{port: port} = state) when port != nil do
@@ -104,9 +134,10 @@ defmodule NomosBeam.KairosSupervisor do
   # ── Private ───────────────────────────────────────────────────────────────
 
   defp build_args(state) do
-    ["--socket",       state.socket_path,
-     "--bpm",          to_string(state.bpm),
-     "--audio-device", to_string(state.audio_device)]
+    ["--socket",        state.socket_path,
+     "--bpm",           to_string(state.bpm),
+     "--audio-device",  to_string(state.audio_device),
+     "--heartbeat-ms",  to_string(@heartbeat_ms)]
   end
 
   defp default_binary do
