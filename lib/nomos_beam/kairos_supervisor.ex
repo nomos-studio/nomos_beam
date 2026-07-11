@@ -33,6 +33,7 @@ defmodule NomosBeam.KairosSupervisor do
 
   @socket_path "/tmp/kairos.sock"
   @restart_delay 3_000
+  @reconnect_notify_delay 1_000
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
@@ -42,7 +43,9 @@ defmodule NomosBeam.KairosSupervisor do
   def init(opts) do
     cfg          = Application.get_env(:nomos_beam, __MODULE__, [])
     env_set      = System.get_env("NOMOS_STUDIO_SRC") != nil
-    enabled      = Keyword.get(opts, :enabled,      Keyword.get(cfg, :enabled, env_set))
+    env_off      = System.get_env("NOMOS_KAIROS_ENABLED") == "false"
+    enabled      = if env_off, do: false,
+                   else: Keyword.get(opts, :enabled, Keyword.get(cfg, :enabled, env_set))
     kairos_path  = Keyword.get(opts, :kairos_path,  Keyword.get(cfg, :kairos_path, default_binary()))
     socket_path  = Keyword.get(opts, :socket_path,  Keyword.get(cfg, :socket_path, @socket_path))
     bpm          = Keyword.get(opts, :bpm,           Keyword.get(cfg, :bpm, 120.0))
@@ -59,6 +62,7 @@ defmodule NomosBeam.KairosSupervisor do
       Logger.info("[KairosSupervisor] starting #{state.kairos_path} #{Enum.join(args, " ")}")
       port = Port.open({:spawn_executable, state.kairos_path},
                        [:binary, :stderr_to_stdout, :exit_status, args: args])
+      Process.send_after(self(), :notify_kairos_ready, @reconnect_notify_delay)
       {:noreply, %{state | port: port}}
     else
       Logger.warning("[KairosSupervisor] kairos binary not found at #{state.kairos_path} — will retry")
@@ -77,6 +81,11 @@ defmodule NomosBeam.KairosSupervisor do
     NomosBeam.NousPort.service_down(:kairos)
     Process.send_after(self(), :start_kairos, @restart_delay)
     {:noreply, %{state | port: nil}}
+  end
+
+  def handle_info(:notify_kairos_ready, %{port: port} = state) when port != nil do
+    NomosBeam.NousPort.kairos_reconnect()
+    {:noreply, state}
   end
 
   def handle_info(_msg, state), do: {:noreply, state}

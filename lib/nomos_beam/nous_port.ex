@@ -63,6 +63,9 @@ defmodule NomosBeam.NousPort do
   @doc "Signal nous to reconnect to aion at the next bar boundary. Fire-and-forget."
   def aion_reconnect, do: GenServer.cast(__MODULE__, :aion_reconnect)
 
+  @doc "Signal nous to reconnect to kairos at the next bar boundary. Fire-and-forget."
+  def kairos_reconnect, do: GenServer.cast(__MODULE__, :kairos_reconnect)
+
   @doc "Return process health status map for ProcessHealth aggregator."
   def status, do: GenServer.call(__MODULE__, :status)
 
@@ -191,6 +194,13 @@ defmodule NomosBeam.NousPort do
   end
 
   def handle_cast(:aion_reconnect, state), do: {:noreply, state}
+
+  def handle_cast(:kairos_reconnect, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :kairos_reconnect})
+    {:noreply, state}
+  end
+
+  def handle_cast(:kairos_reconnect, state), do: {:noreply, state}
 
   # ── Private helpers ───────────────────────────────────────────────────────
 
