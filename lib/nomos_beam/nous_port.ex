@@ -66,6 +66,18 @@ defmodule NomosBeam.NousPort do
   @doc "Signal nous to reconnect to kairos at the next bar boundary. Fire-and-forget."
   def kairos_reconnect, do: GenServer.cast(__MODULE__, :kairos_reconnect)
 
+  @doc "Ask nous to start the named step sequencer loop. Fire-and-forget."
+  def seq_start(name, opts \\ %{}),
+    do: GenServer.cast(__MODULE__, {:seq_start, name, opts})
+
+  @doc "Ask nous to stop the named step sequencer loop. Fire-and-forget."
+  def seq_stop(name),
+    do: GenServer.cast(__MODULE__, {:seq_stop, name})
+
+  @doc "Push a new step pattern to the named sequencer in nous. Fire-and-forget."
+  def seq_pattern_set(name, steps),
+    do: GenServer.cast(__MODULE__, {:seq_pattern_set, name, steps})
+
   @doc "Return process health status map for ProcessHealth aggregator."
   def status, do: GenServer.call(__MODULE__, :status)
 
@@ -96,6 +108,13 @@ defmodule NomosBeam.NousPort do
   def handle_info(%{op: :ctrl_write_echo, path: path, value: value} = echo, state) do
     dispatch_echo(path, value)
     NomosBeam.TxlogBuffer.push(Map.take(echo, [:path, :value, :beat, :wall_ns, :source]))
+    {:noreply, state}
+  end
+
+  # Note event telemetry from nous.core/play! — broadcasts to SequencerLive.
+  def handle_info(%{op: :note_event} = ev, state) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "nomos:seq:note",
+                             {:note_event, Map.drop(ev, [:op])})
     {:noreply, state}
   end
 
@@ -202,6 +221,27 @@ defmodule NomosBeam.NousPort do
 
   def handle_cast(:kairos_reconnect, state), do: {:noreply, state}
 
+  def handle_cast({:seq_start, name, opts}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :seq_start, name: name, opts: opts})
+    {:noreply, state}
+  end
+
+  def handle_cast({:seq_start, _name, _opts}, state), do: {:noreply, state}
+
+  def handle_cast({:seq_stop, name}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :seq_stop, name: name})
+    {:noreply, state}
+  end
+
+  def handle_cast({:seq_stop, _name}, state), do: {:noreply, state}
+
+  def handle_cast({:seq_pattern_set, name, steps}, %{connected: true} = state) do
+    :erlang.send({@nous_mbox, @nous_node}, %{op: :seq_pattern_set, name: name, steps: steps})
+    {:noreply, state}
+  end
+
+  def handle_cast({:seq_pattern_set, _name, _steps}, state), do: {:noreply, state}
+
   # ── Private helpers ───────────────────────────────────────────────────────
 
   defp ensure_distributed do
@@ -256,6 +296,11 @@ defmodule NomosBeam.NousPort do
 
   defp dispatch_echo([:notation | _] = path, value) do
     Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:notation",
+                             {:ctrl_update, path, value})
+  end
+
+  defp dispatch_echo([:seq | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:seq",
                              {:ctrl_update, path, value})
   end
 

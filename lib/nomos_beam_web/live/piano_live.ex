@@ -183,6 +183,7 @@ defmodule NomosBeamWeb.PianoLive do
         <a href="/corpus" class="ml-auto text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">corpus</a>
         <a href="/repl" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">repl</a>
         <a href="/notation" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">notation</a>
+        <a href="/sequencer" class="text-base-content/55 hover:text-base-content/85 text-xs font-mono tracking-widest">seq</a>
         <.process_health health={@health} expanded={@health_expanded} />
       </div>
 
