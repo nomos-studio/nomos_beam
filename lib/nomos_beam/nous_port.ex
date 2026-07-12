@@ -304,6 +304,11 @@ defmodule NomosBeam.NousPort do
                              {:ctrl_update, path, value})
   end
 
+  defp dispatch_echo([:keyboard | _] = path, value) do
+    Phoenix.PubSub.broadcast(NomosBeam.PubSub, "ctrl:keyboard",
+                             {:ctrl_update, path, value})
+  end
+
   # Diagnostic echoes land in TxlogBuffer (for the txlog viewer) but need no
   # dedicated PubSub broadcast — the txlog display is the verification surface.
   defp dispatch_echo([:diagnostic | _], _value), do: :ok

@@ -11,6 +11,7 @@ defmodule NomosBeamWeb.PianoLive do
   @display_topic    "nomos:display:frame"
   @transport_topic  "ctrl:transport"
   @health_topic     "nomos:process:health"
+  @kb_ctrl_topic    "ctrl:keyboard"
   @max_txlog_entries 50
   @beat_flash_ms 120
 
@@ -38,6 +39,7 @@ defmodule NomosBeamWeb.PianoLive do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @display_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @transport_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @health_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @kb_ctrl_topic)
     end
 
     {:ok,
@@ -52,7 +54,12 @@ defmodule NomosBeamWeb.PianoLive do
        theory_key: nil,
        theory_mode: nil,
        health: [],
-       health_expanded: false
+       health_expanded: false,
+       # keyboard mode (M16)
+       kb_mode: :pitch,
+       interval_position: 1,
+       interval_note_name: nil,
+       interval_n_steps: 7
      )}
   end
 
@@ -103,6 +110,18 @@ defmodule NomosBeamWeb.PianoLive do
 
   def handle_info({:ctrl_update, [:theory, :mode], value}, socket) do
     {:noreply, assign(socket, theory_mode: value)}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :mode], value}, socket) do
+    {:noreply, assign(socket, kb_mode: value)}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :interval_position], value}, socket) do
+    {:noreply, assign(socket, interval_position: value)}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :interval_note_name], value}, socket) do
+    {:noreply, assign(socket, interval_note_name: value)}
   end
 
   def handle_info({:ctrl_update, _path, _value}, socket) do
@@ -191,26 +210,57 @@ defmodule NomosBeamWeb.PianoLive do
         nomos-studio
       </header>
 
-      <%!-- Piano keyboard --%>
-      <div class="piano" style="position: relative; width: 280px; height: 150px;">
-        <div
-          :for={key <- @keys}
-          class={[
-            "piano-key",
-            to_string(key.color),
-            key.natural && "c-natural",
-            MapSet.member?(@pressed, key.phys) && "pressed"
-          ]}
-          style={"left: #{key.left}px"}
-          title={key.note}
-        >
-          <span class="piano-key-label">{key.phys}</span>
-        </div>
+      <%!-- Mode badge --%>
+      <div class="font-mono text-xs tracking-widest uppercase flex items-center gap-3">
+        <span class="text-base-content/45">mode</span>
+        <span class={[
+          "px-2 py-0.5 rounded text-xs",
+          case @kb_mode do
+            :pitch              -> "bg-primary/20 text-primary"
+            :interval           -> "bg-accent/20 text-accent"
+            :interval_last_note -> "bg-secondary/20 text-secondary"
+            _                   -> "bg-base-300 text-base-content/60"
+          end
+        ]}>
+          {kb_mode_label(@kb_mode)}
+        </span>
+        <span class="text-base-content/30 text-[10px]">
+          (ctrl/write! [:keyboard :mode] :interval)
+        </span>
       </div>
 
-      <p class="font-mono text-xs text-base-content/55 tracking-widest">
-        a · s · d · f · g · h · j &nbsp;→&nbsp; C D E F G A B
-      </p>
+      <%!-- Keyboard display — piano in :pitch mode, solfege wheel in interval modes --%>
+      <%= if @kb_mode in [:interval, :interval_last_note] do %>
+        <%!-- Solfege wheel --%>
+        <div class="flex flex-col items-center gap-2">
+          <svg width="220" height="220" viewBox="-110 -110 220 220" class="block">
+            {solfege_wheel_svg(@interval_position, @interval_n_steps, @interval_note_name)}
+          </svg>
+          <p class="font-mono text-xs text-base-content/55 tracking-widest">
+            a/s ±1 · d/f ±2 · g/h ±3 · j/w ±4
+          </p>
+        </div>
+      <% else %>
+        <%!-- Piano keyboard (pitch mode) --%>
+        <div class="piano" style="position: relative; width: 280px; height: 150px;">
+          <div
+            :for={key <- @keys}
+            class={[
+              "piano-key",
+              to_string(key.color),
+              key.natural && "c-natural",
+              MapSet.member?(@pressed, key.phys) && "pressed"
+            ]}
+            style={"left: #{key.left}px"}
+            title={key.note}
+          >
+            <span class="piano-key-label">{key.phys}</span>
+          </div>
+        </div>
+        <p class="font-mono text-xs text-base-content/55 tracking-widest">
+          a · s · d · f · g · h · j &nbsp;→&nbsp; C D E F G A B
+        </p>
+      <% end %>
 
       <%!-- Txlog viewer --%>
       <div class="w-full max-w-2xl">
@@ -265,4 +315,74 @@ defmodule NomosBeamWeb.PianoLive do
   end
 
   defp format_path(path), do: inspect(path)
+
+  # ── Keyboard mode helpers ─────────────────────────────────────────────────
+
+  defp kb_mode_label(:pitch),              do: "pitch"
+  defp kb_mode_label(:interval),           do: "interval"
+  defp kb_mode_label(:interval_last_note), do: "interval (last note)"
+  defp kb_mode_label(other),               do: to_string(other)
+
+  # Render the solfege wheel as an SVG fragment (safe HTML string).
+  # pos      — 1-indexed current scale degree (integer)
+  # n_steps  — total scale steps (integer)
+  # note_name — note-class string or nil
+  defp solfege_wheel_svg(pos, n_steps, note_name) do
+    r_outer = 85
+    r_inner = 52
+    r_dot   = 7
+    r_label = 68
+    solfege = ["Do", "Re", "Mi", "Fa", "Sol", "La", "Ti"]
+
+    step_angle = 2 * :math.pi() / n_steps
+
+    dots =
+      Enum.map(0..(n_steps - 1), fn i ->
+        angle   = i * step_angle - :math.pi() / 2
+        lx      = r_label * :math.cos(angle)
+        ly      = r_label * :math.sin(angle)
+        sol_lbl = Enum.at(solfege, rem(i, 7))
+        active  = i + 1 == pos
+
+        dot_fill   = if active, do: "#ffffff", else: "rgba(255,255,255,0.25)"
+        label_fill = if active, do: "#ffffff", else: "rgba(255,255,255,0.45)"
+
+        """
+        <circle cx="#{format_f(lx)}" cy="#{format_f(ly)}" r="#{r_dot}"
+                fill="#{dot_fill}" />
+        <text x="#{format_f(lx)}" y="#{format_f(ly + r_dot + 9)}"
+              text-anchor="middle" font-family="monospace" font-size="9"
+              fill="#{label_fill}">#{sol_lbl}</text>
+        """
+      end)
+      |> Enum.join()
+
+    centre_text =
+      if note_name do
+        """
+        <text x="0" y="6" text-anchor="middle"
+              font-family="monospace" font-size="22" font-weight="bold"
+              fill="rgba(255,255,255,0.9)">#{note_name}</text>
+        <text x="0" y="24" text-anchor="middle"
+              font-family="monospace" font-size="11"
+              fill="rgba(255,255,255,0.45)">deg #{pos}</text>
+        """
+      else
+        """
+        <text x="0" y="8" text-anchor="middle"
+              font-family="monospace" font-size="13"
+              fill="rgba(255,255,255,0.35)">deg #{pos}</text>
+        """
+      end
+
+    """
+    <circle cx="0" cy="0" r="#{r_outer}" fill="rgba(255,255,255,0.04)"
+            stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+    <circle cx="0" cy="0" r="#{r_inner}" fill="rgba(0,0,0,0.35)" />
+    #{dots}
+    #{centre_text}
+    """
+  end
+
+  defp format_f(f), do: :erlang.float_to_binary(f, decimals: 2)
 end
