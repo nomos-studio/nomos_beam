@@ -53,6 +53,7 @@ defmodule NomosBeamWeb.PianoLive do
        playing: false,
        theory_key: nil,
        theory_mode: nil,
+       maqam_name: nil,
        health: [],
        health_expanded: false,
        # keyboard mode (M16)
@@ -110,6 +111,10 @@ defmodule NomosBeamWeb.PianoLive do
 
   def handle_info({:ctrl_update, [:theory, :mode], value}, socket) do
     {:noreply, assign(socket, theory_mode: value)}
+  end
+
+  def handle_info({:ctrl_update, [:theory, :maqam_name], value}, socket) do
+    {:noreply, assign(socket, maqam_name: value)}
   end
 
   def handle_info({:ctrl_update, [:keyboard, :mode], value}, socket) do
@@ -196,6 +201,8 @@ defmodule NomosBeamWeb.PianoLive do
         <span :if={@theory_key} class="ml-3 text-base-content/60 uppercase">key</span>
         <span :if={@theory_key} class="text-accent">{@theory_key}</span>
         <span :if={@theory_mode} class="text-accent/80">{@theory_mode}</span>
+        <span :if={@maqam_name} class="ml-3 text-base-content/60 uppercase">maqam</span>
+        <span :if={@maqam_name} class="text-secondary">{@maqam_name}</span>
         <span :if={!@playing && @bpm == nil} class="text-base-content/45 italic">
           waiting for kairos…
         </span>
