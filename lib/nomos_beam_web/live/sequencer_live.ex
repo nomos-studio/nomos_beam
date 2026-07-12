@@ -4,17 +4,19 @@
 
 defmodule NomosBeamWeb.SequencerLive do
   @moduledoc """
-  Step sequencer + piano roll LiveView (M15).
+  Step sequencer + piano roll LiveView (M15/M17).
 
   Shows:
   - 16-step degree grid: displays the active pattern from [:seq :name :steps]
     in the ctrl-tree; active step highlighted as the sequencer runs.
+  - Tone row section (M17): committed row + in-progress recording buffer,
+    populated when keyboard interval recording is active.
   - Piano roll: scrolling note-event display from nous.core/play! telemetry
     (nomos:seq:note PubSub topic).
   - Transport strip (BPM, beat indicator, key/mode).
   - ProcessHealth expando-matter.
 
-  Pattern editing is REPL-driven for M15. The BEAM view is read-only.
+  Pattern editing is REPL-driven. The BEAM view is read-only.
   """
 
   use NomosBeamWeb, :live_view
@@ -26,6 +28,7 @@ defmodule NomosBeamWeb.SequencerLive do
   @display_topic   "nomos:display:frame"
   @transport_topic "ctrl:transport"
   @health_topic    "nomos:process:health"
+  @kb_ctrl_topic   "ctrl:keyboard"
 
   # Rolling piano roll — keep last N note events.
   @max_notes 128
@@ -53,6 +56,7 @@ defmodule NomosBeamWeb.SequencerLive do
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @display_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @transport_topic)
       Phoenix.PubSub.subscribe(NomosBeam.PubSub, @health_topic)
+      Phoenix.PubSub.subscribe(NomosBeam.PubSub, @kb_ctrl_topic)
     end
 
     {:ok,
@@ -71,6 +75,11 @@ defmodule NomosBeamWeb.SequencerLive do
        beat_flash:     false,
        theory_key:     nil,
        theory_mode:    nil,
+       # tone row (M17)
+       tone_row:             [],
+       tone_row_in_progress: [],
+       interval_position:    1,
+       recording:            false,
        # health
        health:         [],
        health_expanded: false
@@ -146,6 +155,23 @@ defmodule NomosBeamWeb.SequencerLive do
 
   def handle_info({:ctrl_update, [:seq, _name, :running], value}, socket) do
     {:noreply, assign(socket, seq_running: value)}
+  end
+
+  # Keyboard / tone row ctrl echoes (M17)
+  def handle_info({:ctrl_update, [:keyboard, :recording], value}, socket) do
+    {:noreply, assign(socket, recording: value == true)}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :interval_position], value}, socket) do
+    {:noreply, assign(socket, interval_position: value)}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :tone_row_in_progress], value}, socket) do
+    {:noreply, assign(socket, tone_row_in_progress: coerce_row_steps(value))}
+  end
+
+  def handle_info({:ctrl_update, [:keyboard, :tone_row], value}, socket) do
+    {:noreply, assign(socket, tone_row: coerce_row_steps(value))}
   end
 
   def handle_info({:ctrl_update, _path, _value}, socket) do
@@ -239,6 +265,50 @@ defmodule NomosBeamWeb.SequencerLive do
         </div>
         <p class="font-mono text-xs text-base-content/35 mt-2">
           edit pattern with (ctrl/write! [:seq :&lt;name&gt; :steps] steps) in REPL
+        </p>
+      </div>
+
+      <%!-- Tone row (M17) — recording buffer + committed row --%>
+      <div class="w-full max-w-4xl">
+        <h2 class="font-mono text-xs text-base-content/60 tracking-widest uppercase mb-2 flex items-center gap-2">
+          tone row
+          <span :if={@recording} class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+            <span class="text-error text-[10px]">rec</span>
+          </span>
+          <span :if={@interval_position} class="ml-auto text-accent font-mono text-[10px]">
+            pos {@interval_position}
+          </span>
+        </h2>
+        <div :if={@recording or @tone_row_in_progress != []} class="mb-3">
+          <p class="font-mono text-[9px] text-base-content/40 uppercase tracking-widest mb-1">in progress</p>
+          <div class="flex flex-wrap gap-1 min-h-[28px]">
+            <span
+              :for={step <- @tone_row_in_progress}
+              class="px-2 py-0.5 rounded font-mono text-xs bg-error/20 text-error border border-error/30"
+            >
+              {interval_label(step)}
+            </span>
+            <span :if={@tone_row_in_progress == [] and @recording}
+              class="font-mono text-xs text-base-content/30 italic">
+              play interval keys to capture steps…
+            </span>
+          </div>
+        </div>
+        <div :if={@tone_row != []}>
+          <p class="font-mono text-[9px] text-base-content/40 uppercase tracking-widest mb-1">committed</p>
+          <div class="flex flex-wrap gap-1">
+            <span
+              :for={step <- @tone_row}
+              class="px-2 py-0.5 rounded font-mono text-xs bg-primary/15 text-primary border border-primary/30"
+            >
+              {interval_label(step)}
+            </span>
+          </div>
+        </div>
+        <p :if={@tone_row == [] and not @recording}
+          class="font-mono text-xs text-base-content/35 italic">
+          no tone row — (start-recording!) then play interval keys, then (stop-recording!)
         </p>
       </div>
 
@@ -347,6 +417,22 @@ defmodule NomosBeamWeb.SequencerLive do
   end
 
   defp coerce_steps(_), do: default_steps()
+
+  defp coerce_row_steps(steps) when is_list(steps) do
+    Enum.map(steps, fn s ->
+      s = if is_map(s), do: s, else: %{}
+      %{
+        interval: s[:interval] || s["interval"] || 0,
+        vel:      s[:vel]      || s["vel"]      || 100
+      }
+    end)
+  end
+
+  defp coerce_row_steps(_), do: []
+
+  defp interval_label(%{interval: n}) when is_integer(n) and n > 0, do: "+#{n}"
+  defp interval_label(%{interval: n}) when is_integer(n),           do: to_string(n)
+  defp interval_label(_),                                            do: "?"
 
   defp degree_label(%{degree: nil}),    do: "—"
   defp degree_label(%{degree: :rest}),  do: "—"
