@@ -162,21 +162,22 @@ defmodule NomosBeamWeb.SequencerLive do
     {:noreply, assign(socket, seq_running: value)}
   end
 
-  # Keyboard / tone row ctrl echoes (M17)
+  # Tone row lives on the [:seq] tree (single source of truth). The recording
+  # flag and solfège position remain keyboard-scoped echoes.
+  def handle_info({:ctrl_update, [:seq, :tone_row_in_progress], value}, socket) do
+    {:noreply, assign(socket, tone_row_in_progress: coerce_row_steps(value))}
+  end
+
+  def handle_info({:ctrl_update, [:seq, :tone_row], value}, socket) do
+    {:noreply, assign(socket, tone_row: coerce_row_steps(value))}
+  end
+
   def handle_info({:ctrl_update, [:keyboard, :recording], value}, socket) do
     {:noreply, assign(socket, recording: value == true)}
   end
 
   def handle_info({:ctrl_update, [:keyboard, :interval_position], value}, socket) do
     {:noreply, assign(socket, interval_position: value)}
-  end
-
-  def handle_info({:ctrl_update, [:keyboard, :tone_row_in_progress], value}, socket) do
-    {:noreply, assign(socket, tone_row_in_progress: coerce_row_steps(value))}
-  end
-
-  def handle_info({:ctrl_update, [:keyboard, :tone_row], value}, socket) do
-    {:noreply, assign(socket, tone_row: coerce_row_steps(value))}
   end
 
   def handle_info({:ctrl_update, _path, _value}, socket) do
